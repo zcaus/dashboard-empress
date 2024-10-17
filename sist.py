@@ -13,7 +13,10 @@ st.set_page_config(
 )
 
 # Configuração inicial do locale e da página
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+try:
+    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+except locale.Error:
+    locale.setlocale(locale.LC_ALL, 'C')  # ou 'en_US.UTF-8' como fallback
 
 # Estilos customizados do Streamlit
 st.markdown(
