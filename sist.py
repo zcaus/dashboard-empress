@@ -189,9 +189,7 @@ def create_percentage_chart(df):
 def create_value_bar_chart(df):
 
     df['Valor Total'] = df['Valor Total'].replace({'R\$': '', '\.': '', ',': '.'}, regex=True)
-
-# Converter para float
-    df['Valor Total'] = df['Valor Total'].astype(float)
+    df['Valor Total Numérico'] = df['Valor Total'].astype(float)
 
     # Filtra o DataFrame para incluir os status "Pendente", "Atrasado" e "Entregue"
     df_filtrado = df[df['Status'].isin(['Pendente', 'Atrasado', 'Entregue'])]
