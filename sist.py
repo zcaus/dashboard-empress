@@ -158,7 +158,7 @@ perfil = st.sidebar.selectbox("Selecione o Perfil", ["ADM", "Separação", "Comp
 # Converte colunas de data e calcula 'Valor Total'
 df['Dt.pedido'] = pd.to_datetime(df['Dt.pedido'], format='%d/%m/%Y', dayfirst=True)
 df['Valor Total'] = df['Valor Unit.'] * df['Qtd.']
-df['Valor Total'] = df['Valor Total'].apply(lambda x: f'R${x:,.2f}')
+df['Valor Total'] = df['Valor Total'].apply(lambda x: locale.currency(x, grouping=True, symbol=None))
 
 def calcular_pendentes_atrasados(df):
     pendentes = (df['Status'] == 'Pendente').sum()
@@ -187,9 +187,8 @@ def create_percentage_chart(df):
 
 # Função para criar o gráfico de barras com o valor total em R$ apenas para status Pendente e Atrasado
 def create_value_bar_chart(df):
-
-    df['Valor Total'] = df['Valor Total'].replace({'R\$': '', '\.': '', ',': '.'}, regex=True)
-    df['Valor Total Numérico'] = df['Valor Total'].astype(float)
+    # Converte a coluna 'Valor Total' para numérico
+    df['Valor Total Numérico'] = df['Valor Total'].apply(lambda x: locale.atof(x.strip()))
 
     # Filtra o DataFrame para incluir os status "Pendente", "Atrasado" e "Entregue"
     df_filtrado = df[df['Status'].isin(['Pendente', 'Atrasado', 'Entregue'])]

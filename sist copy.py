@@ -391,3 +391,8 @@ def save_changes():
 if perfil == "ADM" and st.button("Salvar Alterações"):
     save_changes()
     st.success("Alterações salvas com sucesso!")
+
+try:
+    # seu código
+except Exception as e:
+    st.error(f"Ocorreu um erro: {e}")
