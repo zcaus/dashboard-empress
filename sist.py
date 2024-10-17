@@ -158,7 +158,7 @@ perfil = st.sidebar.selectbox("Selecione o Perfil", ["ADM", "Separação", "Comp
 # Converte colunas de data e calcula 'Valor Total'
 df['Dt.pedido'] = pd.to_datetime(df['Dt.pedido'], format='%d/%m/%Y', dayfirst=True)
 df['Valor Total'] = df['Valor Unit.'] * df['Qtd.']
-df['Valor Total'] = df['Valor Total'].apply(lambda x: locale.currency(x, grouping=True, symbol=None))
+df['Valor Total'] = df['Valor Total'].apply(lambda x: f'R${x:,.2f}')
 
 def calcular_pendentes_atrasados(df):
     pendentes = (df['Status'] == 'Pendente').sum()
