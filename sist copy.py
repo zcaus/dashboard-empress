@@ -61,9 +61,10 @@ st.markdown(
 # Ocultar colunas desnecessárias
 colunas_para_ocultar = ['Emp', 'Código', 'Razão', 'UF', 'Tp.Venda', 'F.Pagto', 'Vendedor', '% Comissão', 'Operador', '% Comissão.1', '% ICMS', '% IPI', 'Vl.Desc.']
 
+
 # Carregar os dados e ocultar colunas desnecessárias
 @st.cache_data
-def load_data(file_path='planilha/PEDIDOS_VOLPE7.XLSX'):
+def load_data(file_path='planilha/PEDIDOS_VOLPE8.XLSX'):
     try:
         df = pd.read_excel(file_path)
         return df.drop(columns=colunas_para_ocultar, errors='ignore')
@@ -93,6 +94,15 @@ df = df[df['UN'] != 'KG']
 df = df[~df['Fantasia'].isin(['PRIME', 'AMD 5', 'AMD 10', 'FREXCO','SESC INTERLAGOS','RODRIGO MELO','FOXMIX','CCINTER ANTÔNIO', 'L A REFRIGERACAO','NACAO NATURAL'])]
 
 df['Status'] = 'Pendente'
+
+# Calcular o total de pedidos únicos
+total_pedidos = df['Ped. Cliente'].nunique()
+
+# Exibir o total de pedidos como uma linha adicional
+estatisticas_gerais = pd.DataFrame({
+    'Estatística': ['Total de Pedidos'],
+    'Valor': [total_pedidos]
+})
 
 def atualizar_status_colina(df):
     status_dict = {}
@@ -165,6 +175,41 @@ def calcular_pendentes_atrasados(df):
     atrasados = (df['Status'] == 'Atrasado').sum()
     return pendentes, atrasados
 
+def create_value_bar_chart2(df, Produto, Modelo):
+    # Calcular a frequência de cada valor na coluna especificada
+    contagem = df[Produto].value_counts().reset_index()
+    contagem.columns = [Produto, 'Frequência']
+
+    # Mesclar com o DataFrame original para incluir o Modelo no gráfico
+    contagem = contagem.merge(df[[Produto, Modelo]], on=Produto, how='left').drop_duplicates()
+
+    # Criar o gráfico de barras interativo com hover data
+    bar_chart2 = px.bar(
+        contagem, 
+        x=Produto, 
+        y='Frequência', 
+        title='Total por Referência',
+        labels={Produto: 'Código', 'Frequência': 'Quantidade'},
+        color='Frequência', 
+        color_continuous_scale='Viridis',
+        hover_data={Produto: True, 'Frequência': True, Modelo: True}  # Incluir o Modelo no hover
+    )
+
+    # Customizações adicionais
+    bar_chart2.update_layout(
+        xaxis_title='Código do Produto',
+        yaxis_title='Número de Pedidos',
+        xaxis_tickangle=-45,
+        bargap=0.2,  # Ajuste do espaçamento entre as barras
+        xaxis=dict(
+            range=[0, 30],  # Define o intervalo inicial exibido
+            fixedrange=False  # Permite rolagem horizontal
+        )
+    )
+
+    # Retornar o gráfico
+    return bar_chart2
+
 # Criação de gráficos
 def create_percentage_chart(df):
     # Contando o total de pedidos por status
@@ -204,26 +249,62 @@ def create_value_bar_chart(df):
         y='Valor Total', 
         text='Valor Total', 
         title='Valor Total por Status',
-        labels={'Valor Total': 'Valor Total (R$)', 'Status': 'Status'}
+        labels={'Valor Total': 'Valor Total (R$)', 'Status': '  '}
     )
     
     return bar_chart
-# Funções de cada guia
+
 def guia_dashboard():
-    st.markdown("<h3>Estatísticas Gerais <small style='font-size: 0.4em;'></small></h3>", unsafe_allow_html=True)
-    st.metric("Total de Produtos", len(df))
-    st.metric("Total de Produtos Pendentes", pendente)
-    st.metric("Total de Produtos Atrasados", atrasado)
+    # Cabeçalho para Estatísticas Gerais
+    st.markdown("<h3>Estatísticas Gerais <small style='font-size: 0.4em;'>(mês atual)</small></h3>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
+    # Coloca as estatísticas na horizontal no topo da tela
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Total de Pedidos", total_pedidos)
+    with col2:
+        st.metric("Total de Itens", len(df))
+    with col3:
+        st.metric("Total de Produtos Pendentes", pendente)
+    with col4:
+        st.metric("Total de Produtos Atrasados", atrasado)
+    
+    # Espaçamento vertical entre as seções
+    st.write(" ")
+    
+    # Configura duas linhas para os gráficos abaixo das estatísticas
+    # Primeira linha de gráficos
+    col_grafico1, col_grafico2 = st.columns(2)
+    
+    with col_grafico1:
+        st.plotly_chart(create_percentage_chart(df), use_container_width=True)
+    
+    with col_grafico2:
+        st.plotly_chart(create_value_bar_chart(df), use_container_width=True)
+    
+    # Espaçamento vertical entre as linhas de gráficos
+    st.write(" ")
+
+     # Segunda linha de gráficos que ocupa toda a largura
+    st.plotly_chart(create_value_bar_chart2(df, 'Produto', 'Modelo'), use_container_width=True)
+
+    separacao_df, compras_df = mover_pedidos(df)
+
+    st.markdown("<h3>Pedidos Pendentes<small style='font-size: 0.4em;'> (por setor)</small></h3>", unsafe_allow_html=True)
+
+    # Coloca as estatísticas na horizontal no topo da tela
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-    # Exibe o gráfico de porcentagem de pedidos por status
-        st.plotly_chart(create_percentage_chart(df))
-
+        st.metric("Separação", len(separacao_df))  # Contagem de pedidos em separação
     with col2:
-    # Exibe o gráfico de barras por status
-        st.plotly_chart(create_value_bar_chart(df))
+        st.metric("Compras", len(compras_df))      # Contagem de pedidos em compras
+    with col3:
+        st.metric("Embalagem", '?')                   # Você pode atualizar isso conforme necessário
+    with col4:
+        st.metric("Expedição", '?')                   # Você pode atualizar isso conforme necessário
+
 
 def guia_carteira():
     st.title("Carteira")
@@ -382,17 +463,4 @@ else:
         guia_separacao()
     elif perfil == "Compras":
         guia_compras()
-    
-# Salvar alterações (somente ADM)
-@st.cache_data(ttl=3600, persist=True)
-def save_changes():
-    df.to_excel('planilha/pedidos_volpe3_atualizado.xlsx', index=False)
 
-if perfil == "ADM" and st.button("Salvar Alterações"):
-    save_changes()
-    st.success("Alterações salvas com sucesso!")
-
-try:
-    # seu código
-except Exception as e:
-    st.error(f"Ocorreu um erro: {e}")

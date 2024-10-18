@@ -1,0 +1,1 @@
+streamlit stop sist.py
